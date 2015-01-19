@@ -44,21 +44,19 @@ class MessagesWidget extends CWidget
 			$queueController = new QueueController('queue', Yii::app()->getModule('nfy'));
 		}
 		
-		foreach($this->messages as $queueName => $messages) {
-			foreach($messages as $message) {
+		foreach($this->messages as $queueName => $message) {
 				$text = addcslashes($message->body, "'\r\n");
-				$detailsUrl = $queueController->createMessageUrl($queueName, $message);
-				
+//				$detailsUrl = $queueController->createMessageUrl($queueName, $message);
+                                $detailsUrl = Yii::app()->createUrl('/nfy/queue/message', array('queue_name' => 'notificationsQueue', 'subscriber_id' => Yii::app()->user->getId(), 'message_id' => $message->id));
 				$extraCss = (++$cnt % 2) === 0 ? 'even' : 'odd';
 				$elements .= "<div class=\"messagePopoverItem {$extraCss}\" onclick=\"window.location=\\'{$detailsUrl}\\'; return false;\">{$text}</div>";
-			}
 		}
 		
 		$label = Yii::t('NfyModule.app', 'Mark all as read');
 		//! @todo fix this
-		$deleteUrl = $this->owner->createUrl('/nfy/message/mark');
-		$widgetId = $this->getId();
-		
+		$deleteUrl = $this->owner->createUrl('/nfy/queue/mark');
+//		$widgetId = $this->getId();
+$widgetId = 'notification-msgs';
 		$js = <<<JavaScript
 $('#{$widgetId}').popover({
     html: true,
@@ -152,6 +150,15 @@ div.messagePopoverMarkAll a {
 
 .popover-content * {
     text-align: left;
+}
+                
+#ribbon > .popover.fade.bottom.in {
+    left: 1000px !important;
+    width:auto !important;
+}
+                
+#ribbon > .popover .arrow{
+    left: 90% !important;
 }
 CSS;
 		Yii::app()->clientScript->registerCss(__CLASS__.'#popup', $css);
