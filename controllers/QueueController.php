@@ -14,7 +14,7 @@ class QueueController extends Controller
     public function accessRules() {
         return array(
             array('allow', 'actions' => array('index'), 'users' => array('@'), 'roles' => array('nfy.queue.read')),
-            array('allow', 'actions' => array('messages', 'message', 'subscribe', 'unsubscribe', 'mark'), 'users' => array('@')),
+            array('allow', 'actions' => array('messages', 'message', 'subscribe', 'unsubscribe'), 'users' => array('@')),
             array('allow', 'actions' => array('poll'), 'users' => array('@')),
             array('deny', 'users' => array('*')),
         );
@@ -277,15 +277,4 @@ class QueueController extends Controller
 	{
 		return $this->createUrl('message', array('queue_name' => $queue_name, 'subscriber_id' => $message->subscriber_id, 'message_id'=>$message->id));
 	}
-    
-    public function actionMark($id = null)
-    {
-        if ($id === null) {
-            $messages = NfyDbMessage::model()->withQueue('notificationsQueue')->withSubscriber(Yii::app()->user->getId())->available()->findAll(array('index' => 'id'));
-            $now = new DateTime('now', new DateTimezone('UTC'));
-            NfyDbMessage::model()->updateByPk(array_keys($messages), array('status' => NfyMessage::RESERVED, 'reserved_on' => $now->format('Y-m-d H:i:s')));
-            $route = array('messages');
-        }
-        $this->redirect(($referrer = Yii::app()->request->urlReferrer) === null ? $route : $referrer);
-    }
 }

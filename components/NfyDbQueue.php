@@ -14,7 +14,6 @@ class NfyDbQueue extends NfyQueue
         if ($this->blocking) {
             throw new CException(Yii::t('NfyModule.app', 'Not implemented. DbQueue does not support blocking.'));
         }
-        $this->attachBehavior('subscribeUser', new SubscribeBehavior);
     }
 
     /**
@@ -97,6 +96,7 @@ class NfyDbQueue extends NfyQueue
         }
 
         Yii::log(Yii::t('NfyModule.app', "Sent message '{msg}' to queue {queue_label}.", array('{msg}' => $queueMessage->body, '{queue_label}' => $this->label)), CLogger::LEVEL_INFO, 'nfy');
+
         return $success;
     }
 
@@ -204,8 +204,55 @@ class NfyDbQueue extends NfyQueue
      */
     public function subscribe($subscriber_id, $label = null, $categories = null, $exceptions = null)
     {
-        $label = (is_null($label))? $this->label : $label;
-        return $this->subscribeUser($subscriber_id, $this->id , $label = null, $categories = null, $exceptions = null);
+        $trx = NfyDbSubscription::model()->getDbConnection()->getCurrentTransaction() !== null ? null : NfyDbSubscription::model()->getDbConnection()->beginTransaction();
+        $subscription = NfyDbSubscription::model()->withQueue($this->id)->withSubscriber($subscriber_id)->find();
+
+        if ($subscription === null) {
+            $subscription = new NfyDbSubscription;
+            $subscription->setAttributes(array(
+                'queue_id' => $this->id,
+                'subscriber_id' => $subscriber_id,
+                'label' => $label,
+            ));
+            if (!$subscription->save(false))
+                throw new CException(Yii::t('NfyModule.app', 'Failed to subscribe {subscriber_id} to {queue_label}', array('{subscriber_id}' => $subscriber_id, '{queue_label}' => $label)));
+        } else if ($subscription->is_deleted) {
+            $subscription->is_deleted = false;
+        }
+
+        $this->saveSubscriptionCategories($categories, $subscription->primaryKey, false);
+        $this->saveSubscriptionCategories($exceptions, $subscription->primaryKey, true);
+        if ($trx !== null) {
+            $trx->commit();
+        }
+        return true;
+    }
+
+    protected function saveSubscriptionCategories($categories, $subscription_id, $are_exceptions = false)
+    {
+        if ($categories === null)
+            return true;
+        if (!is_array($categories))
+            $categories = array($categories);
+
+        foreach ($categories as $category) {
+            try {
+                $subscriptionCategory = new NfyDbSubscriptionCategory;
+                $subscriptionCategory->setAttributes(array(
+                    'subscription_id' => $subscription_id,
+                    'category' => str_replace('*', '%', $category),
+                    'is_exception' => $are_exceptions ? 1 : 0,
+                ));
+
+                if (!$subscriptionCategory->save()) {
+                    throw new CException(Yii::t('NfyModule.app', 'Failed to save category {category} for subscription {subscription_id}', array('{category}' => $category, '{subscription_id}' => $subscription_id)));
+                }
+            } catch (CDbException $ex) {
+                // this is probably due to constraint violation, ignore
+                // TODO: distinct from constraint violation and other database exceptions
+            }
+        }
+        return true;
     }
 
     /**

@@ -46,17 +46,12 @@ class MessagesWidget extends CWidget
 		
 		foreach($this->messages as $queueName => $message) {
 				$text = addcslashes($message->body, "'\r\n");
-//				$detailsUrl = $queueController->createMessageUrl($queueName, $message);
-                                $detailsUrl = Yii::app()->createUrl('/nfy/queue/message', array('queue_name' => 'notificationsQueue', 'subscriber_id' => Yii::app()->user->getId(), 'message_id' => $message->id));
+                $detailsUrl = Yii::app()->createUrl('/nfy/queue/message', array('queue_name' => 'notificationsQueue', 'subscriber_id' => Yii::app()->user->getId(), 'message_id' => $message->id));
 				$extraCss = (++$cnt % 2) === 0 ? 'even' : 'odd';
 				$elements .= "<div class=\"messagePopoverItem {$extraCss}\" onclick=\"window.location=\\'{$detailsUrl}\\'; return false;\">{$text}</div>";
 		}
 		
-		$label = Yii::t('NfyModule.app', 'Mark all as read');
-		//! @todo fix this
-		$deleteUrl = $this->owner->createUrl('/nfy/queue/mark');
-//		$widgetId = $this->getId();
-$widgetId = 'notification-msgs';
+    $widgetId = 'notification-msgs';
 		$js = <<<JavaScript
 $('#{$widgetId}').popover({
     html: true,
@@ -66,7 +61,6 @@ $('#{$widgetId}').popover({
     title: 'Wiadomości',
     content: function() { 
         var ret = '<div class="messagePopoverContainer">{$elements}</div>';
-        ret += '<div class="messagePopoverMarkAll"><a href="$deleteUrl">{$label}</a></div>';
         return ret;
     }
 });
