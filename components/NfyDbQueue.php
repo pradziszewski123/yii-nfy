@@ -64,7 +64,7 @@ class NfyDbQueue extends NfyQueue
         $trx = $queueMessage->getDbConnection()->getCurrentTransaction() !== null ? null : $queueMessage->getDbConnection()->beginTransaction();
 
         // empty($subscriptions) &&
-        if (!$queueMessage->save(false)) {
+        if (!$queueMessage->save()) {
             Yii::log(Yii::t('NfyModule.app', "Failed to save message '{msg}' in queue {queue_label}.", array('{msg}' => $queueMessage->body, '{queue_label}' => $this->label)), CLogger::LEVEL_ERROR, 'nfy');
             return false;
         }
@@ -77,7 +77,7 @@ class NfyDbQueue extends NfyQueue
                 continue;
             }
 
-            if (!$subscriptionMessage->save(false)) {
+            if (!$subscriptionMessage->save()) {
                 Yii::log(Yii::t('NfyModule.app', "Failed to save message '{msg}' in queue {queue_label} for the subscription {subscription_id}.", array(
                     '{msg}' => $queueMessage->body,
                     '{queue_label}' => $this->label,
@@ -214,7 +214,8 @@ class NfyDbQueue extends NfyQueue
                 'subscriber_id' => $subscriber_id,
                 'label' => $label,
             ));
-            if (!$subscription->save(false))
+
+            if (!$subscription->save())
                 throw new CException(Yii::t('NfyModule.app', 'Failed to subscribe {subscriber_id} to {queue_label}', array('{subscriber_id}' => $subscriber_id, '{queue_label}' => $label)));
         } else if ($subscription->is_deleted) {
             $subscription->is_deleted = false;

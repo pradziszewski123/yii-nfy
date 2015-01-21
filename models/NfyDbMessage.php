@@ -49,7 +49,7 @@ class NfyDbMessage extends CActiveRecord
     public function rules()
     {
         return array(
-            array('queue_id, sender_id, body', 'required', 'except' => 'search'),
+            array('queue_id, body', 'required', 'except' => 'search'),
             array('sender_id, subscription_id, timeout', 'numerical', 'integerOnly' => true),
             array('message_id, subscription_id, timeout', 'numerical', 'integerOnly' => true, 'on' => 'search'),
             array('status', 'numerical', 'integerOnly' => true, 'on' => 'search'),
